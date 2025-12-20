@@ -1,0 +1,13 @@
+{
+  "id": "weihnachten_2025",
+  "title": "Weihnachts Indy Trail",
+  "description": "Indoor-Weihnachts-Trail mit sechs Posten in fester Reihenfolge.",
+  "posts": [
+    { "id": "01", "folder": "01" },
+    { "id": "02", "folder": "02" },
+    { "id": "03", "folder": "03" },
+    { "id": "04", "folder": "04" },
+    { "id": "05", "folder": "05" },
+    { "id": "06", "folder": "06" }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "title": "Posten 5",
+  "text": "Feuer und Schluessel geben dir den naechsten Hinweis.",
+  "hints": [
+    "01_Kamin.png",
+    "02_Key.png",
+    "03_Dachfenster.png"
+  ]
+}

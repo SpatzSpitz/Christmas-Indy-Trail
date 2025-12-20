@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.camera.core.CameraSelector
@@ -30,10 +31,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -69,9 +73,9 @@ import com.example.christmasindytrail.ui.theme.CyanAccent
 import com.example.christmasindytrail.ui.theme.GoldAccent
 import com.example.christmasindytrail.ui.theme.Obsidian
 import com.example.christmasindytrail.ui.theme.SurfaceDark
-import com.google.mlkit.vision.barcode.Barcode
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
-import com.google.mlkit.vision.barcode.common.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 
@@ -176,6 +180,7 @@ private fun LoadingScreen() {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun IndyTopBar(
     title: String,
     subtitle: String?,
@@ -278,6 +283,7 @@ private fun PostScreen(
             .fillMaxSize()
             .background(Obsidian)
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         Text(text = post.title ?: "Posten ${post.id}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         if (!post.text.isNullOrBlank()) {
@@ -292,8 +298,6 @@ private fun PostScreen(
             HintCard(order = index + 1, filePath = file.absolutePath)
             Spacer(modifier = Modifier.height(12.dp))
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         RowActionButtons(
             canRevealMore = revealedHints < post.hintFiles.size,
