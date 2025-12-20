@@ -34,6 +34,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val trail = repository.loadTrail()
             _uiState.update { it.copy(trail = trail, isLoading = false) }
+            // Reset progress on every app start as requested
+            saveProgress(0)
             dataStore.data
                 .map { prefs -> prefs[PROGRESS_KEY] ?: 0 }
                 .distinctUntilChanged()

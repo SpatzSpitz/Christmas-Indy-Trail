@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -353,9 +354,9 @@ private fun HintCard(order: Int, filePath: String) {
             contentDescription = "Hinweis $order",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp)
+                .aspectRatio(2f / 3f)
                 .background(Color(0x3300E1FF), RoundedCornerShape(12.dp)),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit
         )
     }
 }
@@ -453,14 +454,13 @@ private class QrAnalyzer(private val onResult: (String) -> Unit) : ImageAnalysis
             .build()
         BarcodeScanning.getClient(options)
     }
+
     @Volatile
-    private var handled = false
+    private var lastValue: String? = null
+    @Volatile
+    private var lastTimestamp: Long = 0L
 
     override fun analyze(imageProxy: androidx.camera.core.ImageProxy) {
-        if (handled) {
-            imageProxy.close()
-            return
-        }
         val mediaImage = imageProxy.image ?: run {
             imageProxy.close(); return
         }
@@ -468,9 +468,13 @@ private class QrAnalyzer(private val onResult: (String) -> Unit) : ImageAnalysis
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 val value = barcodes.firstOrNull { it.rawValue != null }?.rawValue
-                if (value != null && !handled) {
-                    handled = true
-                    onResult(value)
+                if (value != null) {
+                    val now = System.currentTimeMillis()
+                    if (value != lastValue || now - lastTimestamp > 1000) {
+                        lastValue = value
+                        lastTimestamp = now
+                        onResult(value)
+                    }
                 }
             }
             .addOnCompleteListener { imageProxy.close() }
