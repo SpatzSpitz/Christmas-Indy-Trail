@@ -33,7 +33,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             val trail = repository.loadTrail()
-            _uiState.update { it.copy(trail = trail, isLoading = false) }
+            _uiState.update { it.copy(trail = trail, isLoading = false, showIntro = true) }
             // Reset progress on every app start as requested
             saveProgress(0)
             dataStore.data
@@ -42,10 +42,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 .collect { index ->
                     _uiState.update { state ->
                         val capped = index.coerceIn(0, trail.posts.size)
-                        val forceScanner = capped >= trail.posts.size
                         state.copy(
                             progressIndex = capped,
-                            showScanner = if (forceScanner) false else state.showScanner
+                            showScanner = capped >= trail.posts.size || state.showScanner,
+                            showIntro = state.showIntro && capped == 0
                         )
                     }
                 }
@@ -98,7 +98,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val trail = _uiState.value.trail ?: return
         val progress = _uiState.value.progressIndex
         if (progress >= trail.posts.size) return
-        _uiState.update { it.copy(currentPost = null, showScanner = true, revealedHints = 1) }
+        _uiState.update { it.copy(currentPost = null, showScanner = true, revealedHints = 1, showIntro = false) }
     }
 
     fun clearMessage() {
@@ -108,8 +108,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun resetProgress() {
         viewModelScope.launch {
             saveProgress(0)
-            _uiState.update { it.copy(currentPost = null, showScanner = true, revealedHints = 1, message = "Fortschritt zurueckgesetzt") }
+            _uiState.update { it.copy(currentPost = null, showScanner = false, revealedHints = 1, showIntro = true, message = "Fortschritt zurueckgesetzt") }
         }
+    }
+
+    fun startFromIntro() {
+        _uiState.update { it.copy(showIntro = false, showScanner = true) }
     }
 
     private fun postMessage(text: String) {
@@ -132,6 +136,7 @@ data class UiState(
     val progressIndex: Int = 0,
     val currentPost: Post? = null,
     val showScanner: Boolean = true,
+    val showIntro: Boolean = false,
     val revealedHints: Int = 1,
     val message: String? = null,
     val isLoading: Boolean = false

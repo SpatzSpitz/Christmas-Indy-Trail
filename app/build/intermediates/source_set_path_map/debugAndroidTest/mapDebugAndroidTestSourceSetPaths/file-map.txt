@@ -1,0 +1,6 @@
+com.example.christmasindytrail.test.app-androidTest-0 C:\Coding\Projekte\CristmasRepo\Christmas-Indy-Trail\app\build\generated\res\resValues\androidTest\debug
+com.example.christmasindytrail.test.app-mergeDebugAndroidTestResources-1 C:\Coding\Projekte\CristmasRepo\Christmas-Indy-Trail\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.example.christmasindytrail.test.app-mergeDebugAndroidTestResources-2 C:\Coding\Projekte\CristmasRepo\Christmas-Indy-Trail\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.example.christmasindytrail.test.app-debugAndroidTest-3 C:\Coding\Projekte\CristmasRepo\Christmas-Indy-Trail\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
+com.example.christmasindytrail.test.app-core-1.6.1-4 C:\Users\Fabian QSC\.gradle\caches\8.10.2\transforms\04e6153b7de7dd0457daea840a289f3d\transformed\core-1.6.1\res
+com.example.christmasindytrail.test.app-tracing-1.2.0-5 C:\Users\Fabian QSC\.gradle\caches\8.10.2\transforms\b4f0e6f294e722f981e539aefeb26216\transformed\tracing-1.2.0\res

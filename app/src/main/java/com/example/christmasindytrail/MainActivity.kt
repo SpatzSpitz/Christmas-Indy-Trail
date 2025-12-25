@@ -12,14 +12,18 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +34,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +47,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -56,8 +63,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -66,7 +76,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import coil.compose.AsyncImage
 import com.example.christmasindytrail.data.Post
 import com.example.christmasindytrail.ui.theme.ChristmasIndyTrailTheme
@@ -85,6 +99,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.navigationBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         setContent {
             ChristmasIndyTrailTheme {
                 val uiState by viewModel.uiState.collectAsState()
@@ -106,7 +125,8 @@ class MainActivity : ComponentActivity() {
                         onScan = viewModel::handleScan,
                         onReveal = viewModel::revealNextHint,
                         onOpenScanner = viewModel::goToScanner,
-                        onReset = viewModel::resetProgress
+                        onReset = viewModel::resetProgress,
+                        onStartFromIntro = viewModel::startFromIntro
                     )
                 }
             }
@@ -121,7 +141,8 @@ private fun TrailScreen(
     onScan: (String) -> Unit,
     onReveal: () -> Unit,
     onOpenScanner: () -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    onStartFromIntro: () -> Unit
 ) {
     val trail = state.trail ?: return
     val progress = state.progressIndex
@@ -130,15 +151,48 @@ private fun TrailScreen(
     val completed = progress >= total && state.currentPost == null
 
     Scaffold(
-        topBar = {
-            IndyTopBar(
-                title = trail.title ?: "Indy Trail",
-                subtitle = trail.description,
-                progressText = if (completed) "Abgeschlossen" else "Posten ${progress + 1} von $total",
-                onReset = onReset
-            )
+        topBar = {},
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                val scale = remember { Animatable(0.9f) }
+                LaunchedEffect(data.visuals.message) {
+                    scale.snapTo(0.9f)
+                    scale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    )
+                }
+                Snackbar(
+                    containerColor = GoldAccent,
+                    contentColor = Color.Black,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer(
+                            scaleX = scale.value,
+                            scaleY = scale.value,
+                            shadowElevation = 24f
+                        )
+                ) {
+                    Text(
+                        text = data.visuals.message,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            shadow = Shadow(
+                                color = GoldAccent.copy(alpha = 0.7f),
+                                blurRadius = 18f
+                            )
+                        )
+                    )
+                }
+            }
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Obsidian
     ) { padding ->
         Box(
@@ -147,6 +201,11 @@ private fun TrailScreen(
                 .padding(padding)
         ) {
             when {
+                state.showIntro -> IntroScreen(
+                    title = trail.title ?: "Indy Trail",
+                    description = trail.description ?: "Starte den Trail mit dem ersten QR-Code.",
+                    onStart = onStartFromIntro
+                )
                 completed -> CompletionScreen()
                 state.currentPost != null -> PostScreen(
                     post = state.currentPost,
@@ -234,16 +293,12 @@ private fun ScannerScreen(expectedId: String?, onScan: (String) -> Unit) {
             .background(Obsidian),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Naechster QR-Posten",
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.Gray
-            )
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
             Text(
                 text = expectedId?.let { "Posten $it" } ?: "Bereit",
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = CyanAccent
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -257,7 +312,7 @@ private fun ScannerScreen(expectedId: String?, onScan: (String) -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 0.dp, vertical = 8.dp)
         ) {
             if (hasCameraPermission) {
                 QrScannerView(onResult = onScan)
@@ -283,10 +338,15 @@ private fun PostScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Obsidian)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text(text = post.title ?: "Posten ${post.id}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(
+            text = post.title ?: "Posten ${post.id}",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = CyanAccent
+        )
         if (!post.text.isNullOrBlank()) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = post.text ?: "", color = Color.LightGray)
@@ -347,7 +407,7 @@ private fun HintCard(order: Int, filePath: String) {
             .background(SurfaceDark, RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
-        Text(text = "Hinweis $order", style = MaterialTheme.typography.labelMedium, color = CyanAccent)
+        Text(text = "Hinweis $order", style = MaterialTheme.typography.labelMedium, color = Color.LightGray)
         Spacer(modifier = Modifier.height(8.dp))
         AsyncImage(
             model = filePath,
@@ -371,7 +431,12 @@ private fun CompletionScreen() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Glueckwunsch!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Glueckwunsch!",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = CyanAccent
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Du hast alle Posten des Trails abgeschlossen.",
@@ -379,6 +444,88 @@ private fun CompletionScreen() {
             color = Color.LightGray,
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@Composable
+private fun IntroScreen(
+    title: String,
+    description: String,
+    onStart: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Obsidian)
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(56.dp))
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = title
+                    .replace("INDY", "", ignoreCase = true)
+                    .replace("  ", " ")
+                    .trim()
+                    .uppercase()
+                    .replace(" ", "\n"),
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 2.sp,
+                lineHeight = 38.sp,
+                color = CyanAccent,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Divider(
+                color = CyanAccent.copy(alpha = 0.5f),
+                thickness = 2.dp,
+                modifier = Modifier
+                    .width(120.dp)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.LightGray,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                onClick = onStart,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.qr_code),
+                    contentDescription = "QR-Code scannen",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
     }
 }
 

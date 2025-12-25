@@ -1,7 +1,7 @@
 {
   "id": "weihnachten_2025",
   "title": "Weihnachts Indy Trail",
-  "description": "Indoor-Weihnachts-Trail mit sechs Posten in fester Reihenfolge.",
+  "description": "Indoor-Weihnachts-Trail mit sechs Posten in fester Reihenfolge. Folge den Hinweisen und finde die deine Geschenke! Scanne dazu an jedem Posten den QR-Code um den naechsten Hinweis zu erhalten.",
   "posts": [
     { "id": "01", "folder": "01" },
     { "id": "02", "folder": "02" },
